@@ -1,0 +1,17 @@
+cabal-version: 3.0
+name:          hrt
+version:       0.1.0.0
+synopsis:      haskell raytracer
+license:       MIT
+author:        catsonr
+maintainer:    ritcheycarson@gmail.com
+category:      Graphics
+
+executable hrt
+  main-is:       Main.hs
+  hs-source-dirs: src
+  build-depends:
+    base,
+    bytestring,
+    linear
+  default-language: Haskell2010

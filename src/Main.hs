@@ -1,5 +1,7 @@
 -- haskell ray tracer
 
+module Main where
+
 import Data.ByteString.Builder
 import qualified Data.ByteString.Lazy as BL
 
@@ -43,7 +45,7 @@ row j w = mconcat [ pixel $ colorAt (i, j) | i <- [0..w-1] ] <> padding w
 rows :: Int -> Int -> Builder
 rows w h = mconcat [ row j w | j <- [0..h-1] ]
 
--- generates a blank bmp with dimensions w, h
+-- generates a bmp with dimensions w, h as defined by colorAt
 -- https://lmcnulty.me/words/bmp-output/
 bmp :: (Int, Int) -> Builder
 bmp (w, h) = 
