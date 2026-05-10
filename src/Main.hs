@@ -2,72 +2,53 @@
 
 module Main where
 
-import Data.ByteString.Builder
 import qualified Data.ByteString.Lazy as BL
+import Data.ByteString.Builder
+import Bmp (bmp, Color)
 
---- fun raytracing stuff ---
+import Linear.V3
+import Linear.Metric
+import Linear.Epsilon (nearZero)
 
--- Color represents a color with components R, G, and B. values above 255 are rounded down
-type Color = (Int, Int, Int)
+data Sphere = Sphere { center :: V3 Double, radius :: Double }
+data Ray = Ray { origin :: V3 Double, direction :: V3 Double }
 
 -- determines the color of a given pixel based on its uv (origin top left)
 colorAt :: (Int, Int) -> Color
 colorAt _ = (0, 50, 255)
 
---- lame BMP stuff --
+-- creates a Ray from the origin to the given "pixel" of the viewport
+cast :: Int -> Int -> Int -> Int -> Double -> Ray
+cast w h i j d = Ray {
+  origin    = V3 0 0 0,
+  direction = normalize $ V3 ((-r)/2 + dw/2 + i'*dw) (0.5 - dh/2 - j'*dh) (-d)
+}
+  where w' = fromIntegral w
+        h' = fromIntegral h
+        i' = fromIntegral i
+        j' = fromIntegral j
+        r  = w' / h'
+        dw = r / w'
+        dh = 1 / h'
 
--- for a given width and height, return what would be the size of the bmp, in bytes
--- llm magic formula
-bmpSize :: (Int, Int) -> Int
-bmpSize (w, h) = 54 + rowSize*h
-  where rowSize = ((w*3 + 3) `div` 4) * 4
-
--- for a given width, how many additional padding bytes are needed
-paddingNeeded :: Int -> Int
-paddingNeeded w = 
-  if bytes `mod` 4 == 0 then 0
-  else 4 - (bytes `mod` 4)
-  where bytes = w*3
-
--- the actual byte padding to add to the end of each row
-padding :: Int -> Builder
-padding w = mconcat [ word8 0 | _ <- [1..paddingNeeded w] ]
-
--- the byte representation of a Color
-pixel :: Color -> Builder
-pixel (r, g, b) = word8 (fromIntegral b) <> word8 (fromIntegral g) <> word8 (fromIntegral r)
-
--- the bytes of the jth row of the bmp
-row :: Int -> Int -> Builder
-row j w = mconcat [ pixel $ colorAt (i, j) | i <- [0..w-1] ] <> padding w
-
--- the bytes of all rows (entire image)
-rows :: Int -> Int -> Builder
-rows w h = mconcat [ row j w | j <- [0..h-1] ]
-
--- generates a bmp with dimensions w, h as defined by colorAt
--- https://lmcnulty.me/words/bmp-output/
-bmp :: (Int, Int) -> Builder
-bmp (w, h) = 
--- tag
-  word8 0x42 <> word8 0x4d <>
--- header
-  word32LE (fromIntegral $ bmpSize (w, h)) <> word32LE 0x00 <> word32LE 0x36 <>
--- DIB header
-  word32LE 0x28 <> -- size of header
-  word32LE (fromIntegral w) <> word32LE (fromIntegral h) <> -- w & h
-  word16LE 0x01 <> -- number of color planes
-  word16LE 0x18 <> -- bits per pixel
-  word32LE 0x00 <> -- compression method
-  word32LE 0x00 <> -- image size, ignored w no compression
-  word32LE 0x2e23 <> -- horizontal resolution
-  word32LE 0x2e23 <> -- vertical resolution
-  word32LE 0x00 <> -- colors in pallete
-  word32LE 0x00 <> -- important colors
-  -- pixel data! (b, g, r, padding)
-  rows w h
-
---- entrypoint ---
+raySphere :: Ray -> Sphere -> Maybe Double
+raySphere (Ray o u) (Sphere c r) -- assuming u is normalized!
+  | dis < 0 = Nothing
+  | t1 > 0 = Just t1 -- two solutions, nearest intersection
+  | t2 > 0 = Just t2 -- two solutions, farthest intersection (ray inside sphere)
+  | otherwise = Nothing -- miss
+  where oc = o-c
+        b = u `dot` oc
+        dis = b^2 - (quadrance oc - r^2)
+        t1 = -b - sqrt dis
+        t2 = -b + sqrt dis
 
 main = do
-  BL.writeFile "bmp.bmp" $ toLazyByteString $ bmp (20, 80) 
+  let w = 3
+  let h = 3
+  let ray = cast w h 1 1 1.0
+  let sphere = Sphere { center = V3 0 0 (-5), radius = 3 }
+
+  BL.writeFile "bmp.bmp" $ toLazyByteString $ bmp colorAt (w, h) 
+
+  print $ raySphere ray sphere

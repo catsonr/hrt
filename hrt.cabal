@@ -9,6 +9,7 @@ category:      Graphics
 
 executable hrt
   main-is:       Main.hs
+  other-modules: Bmp
   hs-source-dirs: src
   build-depends:
     base,
