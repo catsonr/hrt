@@ -14,5 +14,6 @@ executable hrt
   build-depends:
     base,
     bytestring,
-    linear
+    linear,
+    random
   default-language: Haskell2010
