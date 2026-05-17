@@ -63,8 +63,8 @@ viewportRay w h i j d = Ray {
 raySphere :: Ray -> Sphere -> Maybe Hit
 raySphere (Ray o u) (Sphere c r) -- assuming u is normalized!
   | dis < 0 = Nothing
-  | t1 > 0 = let pt = o + t1*^u in Just Hit { t=t1, p=pt, n=normalize $ pt - c }
-  | t2 > 0 = let pt = o + t2*^u in Just Hit { t=t2, p=pt, n=normalize $ pt - c }
+  | t1 > 0 = Just Hit { t=t1, p=pt t1, n=normalize $ pt t1 - c }
+  | t2 > 0 = Just Hit { t=t2, p=pt t2, n=normalize $ pt t2 - c }
   | otherwise = Nothing
   where oc = o-c
         b = u `dot` oc
@@ -104,9 +104,8 @@ main = do
                 ]
 
   let pathtraceColorFn (i, j) = let ray = viewportRay w h i j 1.0
-                                    pseudorandom = round $ abs $ cos (fromIntegral i*123123 + fromIntegral j)*fromIntegral i*1143
-                                    gen = mkStdGen pseudorandom
-                                    (_, v3color) = pathtrace gen spheres ray 400
+                                    gen = mkStdGen (w*j + i)
+                                    (_, v3color) = pathtrace gen spheres ray 4
                                 in v3colorToColor v3color
 
   BL.writeFile "bmp.bmp" $ toLazyByteString $ bmp pathtraceColorFn (w, h) 
